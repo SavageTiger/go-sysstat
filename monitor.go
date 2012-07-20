@@ -18,7 +18,7 @@ func monitorLoop() bool {
 }
 
 func cpuStats () string {
-    var kernelStat [git@github.com:SavageTiger/go-sysstat.git]byte;
+    var kernelStat[] byte;
     var cpuStat string;
     
     kernelStat, err := ioutil.ReadFile("/proc/stat");
@@ -45,7 +45,7 @@ func cpuStats () string {
             return err.Error();
         }
         
-        fmt.Println(factor);
+        fmt.Println(idleFactor);
     }
     
     return cpuStat;
