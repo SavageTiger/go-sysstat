@@ -1,15 +1,17 @@
 package main
 
 import "time";
-import "io/ioutil";
-import "strings";
+import "strconv";
 import "fmt"; // Debugging.
 
 func monitorLoop() bool {
     var second time.Duration = (1000 * time.Millisecond);
+    var cpuInfo CpuInfo = getCpuInfo();
+    
+    fmt.Println("CPU [" + cpuInfo.arch +"]: " + cpuInfo.modelName + " [" + strconv.Itoa(int(cpuInfo.cores)) + " cores, " + strconv.Itoa(int(cpuInfo.mhz)) + " mhz]");
     
     for ;; {
-        fmt.Println(cpuStats());
+        fmt.Println(cpuStats(cpuInfo));
         
         time.Sleep(second * 1);
     }
@@ -17,36 +19,3 @@ func monitorLoop() bool {
     return false;
 }
 
-func cpuStats () string {
-    var kernelStat[] byte;
-    var cpuStat string;
-    
-    kernelStat, err := ioutil.ReadFile("/proc/stat");
-    
-    if err != nil {
-        return err.Error();
-    } else {
-        var cpuStatLine []string
-        var percentage int;
-        var idleFactor int;
-        
-        cpuStatLine = strings.Split(string(kernelStat), "\n");
-        cpuStatLine = strings.Split(cpuStatLine[0], " ");
-        
-        percentage =
-            StringToInteger(cpuStatLine[2]) +
-            StringToInteger(cpuStatLine[3]) +
-            StringToInteger(cpuStatLine[4]);
-        idleFactor = StringToInteger(cpuStatLine[5]);
-        
-        percentage = percentage / (percentage + idleFactor);
-        
-        if err != nil {
-            return err.Error();
-        }
-        
-        fmt.Println(idleFactor);
-    }
-    
-    return cpuStat;
-}
