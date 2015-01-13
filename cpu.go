@@ -1,5 +1,9 @@
 package main;
 
+// #cgo LDFLAGS: -lsensors
+// #include "sensors/sensors.h"
+import "C"
+
 import "io/ioutil";
 import "strings";
 import "strconv";
@@ -40,7 +44,7 @@ func getCpuInfo() CpuInfo {
 
             cpuInfo.vendorId = line;
         }
-    
+
         if (strings.HasPrefix(line, "model\t\t: ") == true && cpuInfo.model == 0) {
             line = strings.Split(line, ":")[1];
             line = strings.TrimSpace(line);
@@ -57,7 +61,7 @@ func getCpuInfo() CpuInfo {
             cpuInfo.modelName = line;
         }
     }
-    
+
     cpuInfo.cores = cores;
 
     kernelStat, err = exec.Command("/usr/bin/lscpu").Output();
@@ -69,33 +73,43 @@ func getCpuInfo() CpuInfo {
     }
 
     for _, line := range cpuStatLine {
-        if (strings.HasPrefix(line, "CPU max MHz:") == true && cpuInfo.mhz == 0) {
-            line = strings.Split(line, ":")[1];
-            line = strings.TrimSpace(line);
-            line = strings.Replace(line, ",", ".", -1);
-
-            mhz, _ := strconv.ParseFloat(line, 64);
-            
-            cpuInfo.mhz = mhz;
-        }
-
         if (strings.HasPrefix(line, "Architecture:") == true && cpuInfo.arch == "") {
             line = strings.Split(line, ":")[1];
             line = strings.TrimSpace(line);
-            
+
             cpuInfo.arch = line;
         }
     }
 
+    cpuInfo.mhz = getMhz();
+
     return cpuInfo;
+}
+
+func getMhz() float64 {
+    var mhz float64;
+
+    kernelStat, err := ioutil.ReadFile("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
+
+    if err != nil {
+        return 0;
+    }
+
+    mhz, _ = strconv.ParseFloat(strings.TrimSpace(string(kernelStat)), 64);
+
+    if (mhz > 0) {
+        mhz = mhz / 1000;
+    }
+
+    return mhz;
 }
 
 func cpuStats (cpuInfo CpuInfo) ([]int, string) {
     var kernelStat[] byte;
     var cpuStat []int;
-    
+
     kernelStat, err := ioutil.ReadFile("/proc/stat");
-    
+
     if err != nil {
         return cpuStat, err.Error();
     } else {
@@ -111,13 +125,13 @@ func cpuStats (cpuInfo CpuInfo) ([]int, string) {
             StringToInteger(cpuStatLine[3]) +
             StringToInteger(cpuStatLine[4]);
         idleFactor = StringToInteger(cpuStatLine[5]);
-        
+
         percentage = percentage / (percentage + idleFactor);
-               
+
         if err != nil {
             return cpuStat, err.Error();
         }
     }
-    
+
     return cpuStat, "";
 }
